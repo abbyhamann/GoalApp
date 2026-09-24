@@ -1,13 +1,19 @@
-﻿using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks.Sources;
 
 namespace GoalApp
 {
+    public delegate void GoalCompletedEventHandler(Goal goal); // Delegate for goal completion event
+    public delegate void StreakMilestoneHandler(HabitMakeGoal goal, int streak); //Got idea from Claude AI to create a delegate for the HabitMakeGoal and HabitBreakGoal class to handle streak milestones
     public class Goal // Base class for goals
     {
         public string Name { get; set; }
         public string HowOften { get; set; }
         public string ReminderFrequency { get; set; }
         public bool IsCompleted { get; set; }
+        public event GoalCompletedEventHandler OnCompleted; // Event to notify when a goal is completed
+
         public Goal(string name, string howOften, string frequency) //base constructor to initialize goal properties
         {
             Name = name;
@@ -26,15 +32,26 @@ namespace GoalApp
         public void MarkAsCompleted()
         {
             IsCompleted = true;
+            OnCompleted?.Invoke(this); // Invoke the event if there are subscribers
         }
     }
     public class HabitBreakGoal : Goal // Specific Goal Type that inherits from Goal
     {
         public int DaysSinceHabitRelapse { get; set; }
+        public Action<HabitBreakGoal> OnRelapse; // Action delegate to handle relapse events
         public HabitBreakGoal(string name, string howOften, string frequency) 
             : base(name, howOften, frequency)
         {
             DaysSinceHabitRelapse = 0;
+        }
+        public void IncrementDaysSinceRelapse() //Method to increment the DaysSinceHabitRelapse property
+        {
+            DaysSinceHabitRelapse++;
+        }
+        public void Relapse() //Method to reset the DaysSinceHabitRelapse property to 0
+        {
+            DaysSinceHabitRelapse = 0;
+            OnRelapse?.Invoke(this); // Invoke the OnRelapse action if there are subscribers)
         }
         public override void DisplayGoal() //overrides the DisplayGoal method to include DaysSinceHabitRelapse.
                                            //used Claude AI to help with formatting and code structure.
@@ -47,12 +64,26 @@ namespace GoalApp
     public class HabitMakeGoal : Goal //Inherits from Goal
     {
         public int HabitStreak { get; set; }
+        public StreakMilestoneHandler OnMilestone;   // fires when a milestone is hit
+        private readonly int[] milestones = { 7, 30, 100 };
         public HabitMakeGoal(string name, string howOften, string frequency) 
             : base(name, howOften, frequency)
         {
             HabitStreak = 0;
         }
-        public override void DisplayGoal() //overrides the DisplayGoal method to include HabitStreak
+        public void IncrementStreak() //Method to increment the HabitStreak property
+        {
+            HabitStreak++;
+            if (milestones.Contains(HabitStreak))
+            {
+                OnMilestone?.Invoke(this, HabitStreak);
+            }
+        }
+        public void BreakStreak()
+        {
+            HabitStreak = 0;
+        }
+        public override void DisplayGoal()
         {
             base.DisplayGoal();
             Console.WriteLine($"Habit Streak: {HabitStreak}");
@@ -111,7 +142,9 @@ namespace GoalApp
     {
         public static void Main(string[] args)
         {
-            
+            var goal = new Goal("Test Goal", "Daily", "Weekly");
+            goal.OnCompleted += (goal) => Console.WriteLine("Goal completed!"); //Lambda expression to handle the OnCompleted event, and multicasting to showcase delegates
+            goal.MarkAsCompleted();
         }
     }
 }
