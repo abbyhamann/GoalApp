@@ -1,18 +1,31 @@
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks.Sources;
+
 
 namespace GoalApp
 {
     public delegate void GoalCompletedEventHandler(Goal goal); // Delegate for goal completion event
-    public delegate void StreakMilestoneHandler(HabitMakeGoal goal, int streak); //Got idea from Claude AI to create a delegate for the HabitMakeGoal and HabitBreakGoal class to handle streak milestones
-    public class Goal // Base class for goals
+    public delegate void StreakMilestoneHandler(HabitMakeGoal goal, int streak); //Claude AI suggested making a delegate for the HabitMakeGoal and HabitBreakGoal class to handle streak milestones
+    public interface ITrackable // Interface for goals that can track progress
+                                // It defines a property for the current count and a method to record progress.
+                                //Both are interfaces because classes can implement multiple interfaces, as opposed to inheriting from a single base class.
+    {
+        int CurrentCount { get; }
+        void RecordProgress();
+    }
+
+    public interface IResettable // Interface for goals that can be reset
+                                 // It defines a method to reset the goal's progress.
+    {
+        void Reset();
+    }
+    public abstract class Goal // Base class for goals. Abstract because it's a template and should not be instantiated directly.
+                               // It provides common properties and methods for all goal types.
+                               // Claude AI suggested making the existing class abstract.
     {
         public string Name { get; set; }
         public string HowOften { get; set; }
         public string ReminderFrequency { get; set; }
         public bool IsCompleted { get; set; }
-        public event GoalCompletedEventHandler OnCompleted; // Event to notify when a goal is completed
+        public event GoalCompletedEventHandler? OnCompleted; // Event to notify when a goal is completed
 
         public Goal(string name, string howOften, string frequency) //base constructor to initialize goal properties
         {
@@ -31,46 +44,30 @@ namespace GoalApp
         }
         public void MarkAsCompleted()
         {
+            if (IsCompleted) return;
             IsCompleted = true;
-            OnCompleted?.Invoke(this); // Invoke the event if there are subscribers
+            OnCompleted?.Invoke(this); // Invoke the OnCompleted event if there are subscribers
         }
-    }
-    public class HabitBreakGoal : Goal // Specific Goal Type that inherits from Goal
-    {
-        public int DaysSinceHabitRelapse { get; set; }
-        public Action<HabitBreakGoal> OnRelapse; // Action delegate to handle relapse events
-        public HabitBreakGoal(string name, string howOften, string frequency) 
-            : base(name, howOften, frequency)
-        {
-            DaysSinceHabitRelapse = 0;
-        }
-        public void IncrementDaysSinceRelapse() //Method to increment the DaysSinceHabitRelapse property
-        {
-            DaysSinceHabitRelapse++;
-        }
-        public void Relapse() //Method to reset the DaysSinceHabitRelapse property to 0
-        {
-            DaysSinceHabitRelapse = 0;
-            OnRelapse?.Invoke(this); // Invoke the OnRelapse action if there are subscribers)
-        }
-        public override void DisplayGoal() //overrides the DisplayGoal method to include DaysSinceHabitRelapse.
-                                           //used Claude AI to help with formatting and code structure.
-        {
-            base.DisplayGoal();
-            Console.WriteLine($"Days Since Habit Relapse: {DaysSinceHabitRelapse}");
-        }
+        public abstract string GetProgressSummary();
     }
 
-    public class HabitMakeGoal : Goal //Inherits from Goal
+    public sealed class HabitMakeGoal : Goal, ITrackable, IResettable //Inherits from Goal and implements ITrackable and IResettable interfaces 
+                                                                      // This and the other two subclasses are sealed because they are the end of the inheritance chain.
+                                                                      //This is a design choice to prevent further subclassing and maintain the integrity of the goal types.
     {
-        public int HabitStreak { get; set; }
-        public StreakMilestoneHandler OnMilestone;   // fires when a milestone is hit
+        public int HabitStreak { get; private set; } //By making it private, we ensure that the streak can only be modified through the IncrementStreak and BreakStreak methods,
+                                                     //which can include additional logic (like milestone checks).
+        public int CurrentCount => HabitStreak; // Implementing ITrackable interface property
+        public void RecordProgress() => IncrementStreak(); // Implementing ITrackable interface method
+        public void Reset() => BreakStreak(); // Implementing IResettable interface method
+        public StreakMilestoneHandler? OnMilestone;   // fires when a milestone is hit
         private readonly int[] milestones = { 7, 30, 100 };
         public HabitMakeGoal(string name, string howOften, string frequency) 
             : base(name, howOften, frequency)
         {
             HabitStreak = 0;
         }
+        public override string GetProgressSummary() => $"{Name}: {HabitStreak}-day streak";
         public void IncrementStreak() //Method to increment the HabitStreak property
         {
             HabitStreak++;
@@ -89,7 +86,37 @@ namespace GoalApp
             Console.WriteLine($"Habit Streak: {HabitStreak}");
         }
     }
-    public class ExerciseGoal : Goal // Inherits from Goal
+    public sealed class HabitBreakGoal : Goal, ITrackable, IResettable // Specific Goal Type that inherits from Goal
+    {
+        public int DaysSinceHabitRelapse { get; private set; }
+        public int CurrentCount => DaysSinceHabitRelapse; // Implementing ITrackable interface property
+        public void RecordProgress() => IncrementDaysSinceRelapse(); // Implementing ITrackable interface method
+        public void Reset() => Relapse(); // Implementing IResettable interface method
+        public Action<HabitBreakGoal>? OnRelapse; // Action built-in delegate to handle relapse events
+        public HabitBreakGoal(string name, string howOften, string frequency)
+            : base(name, howOften, frequency)
+        {
+            DaysSinceHabitRelapse = 0;
+        }
+        public override string GetProgressSummary() => $"{Name}: {DaysSinceHabitRelapse} days clean";
+        //override abstract method to provide a summary of the goal's progress
+        public void IncrementDaysSinceRelapse() //Method to increment the DaysSinceHabitRelapse property
+        {
+            DaysSinceHabitRelapse++;
+        }
+        public void Relapse() //Method to reset the DaysSinceHabitRelapse property to 0
+        {
+            DaysSinceHabitRelapse = 0;
+            OnRelapse?.Invoke(this); // Invoke the OnRelapse action if there are subscribers)
+        }
+        public override void DisplayGoal() //overrides the DisplayGoal method to include DaysSinceHabitRelapse.
+                                           //used Claude AI to help with formatting and code structure.
+        {
+            base.DisplayGoal();
+            Console.WriteLine($"Days Since Habit Relapse: {DaysSinceHabitRelapse}");
+        }
+    }
+    public sealed class ExerciseGoal : Goal // Inherits from Goal
     {
         public List<(string ExerciseType, int Reps)> Exercises { get; set; }
 
@@ -98,7 +125,7 @@ namespace GoalApp
         {
             Exercises = new List<(string, int)>();
         }
-
+        public override string GetProgressSummary() => $"{Name}: {Exercises.Count} exercises planned";
         // Overload 1: add a single exercise with reps
         //used Claude AI to help with formatting and code structure.
         public void AddExercise(string exerciseType, int reps)
@@ -138,13 +165,112 @@ namespace GoalApp
         }
     }
 
-    public class Program
+    public class Program //Claude AI used to generate temporary code structure and formatting for Program class for demonstration purposes
     {
         public static void Main(string[] args)
         {
-            var goal = new Goal("Test Goal", "Daily", "Weekly");
-            goal.OnCompleted += (goal) => Console.WriteLine("Goal completed!"); //Lambda expression to handle the OnCompleted event, and multicasting to showcase delegates
-            goal.MarkAsCompleted();
+            // 1. Abstract + sealed: "new Goal(...)" no longer compiles, so create subclasses
+            Section("1. Creating goals");
+            var read = new HabitMakeGoal("Read 20 minutes", "Daily", "Evening");
+            var quit = new HabitBreakGoal("Quit smoking", "Daily", "Morning");
+            var gym = new ExerciseGoal("Leg day", "Weekly", "Monday morning");
+            Console.WriteLine("Created: HabitMakeGoal, HabitBreakGoal, ExerciseGoal");
+
+            // 2. Delegates: multicast event, custom delegate, Action<T>, lambdas
+            read.OnCompleted += c => Console.WriteLine($"  [OnCompleted #1] {c.Name} is done!");
+            read.OnCompleted += c => Console.WriteLine($"  [OnCompleted #2] Second subscriber notified about {c.Name}");
+            read.OnMilestone += (habit, streak) => Console.WriteLine($"  [OnMilestone] {habit.Name} reached a {streak}-day streak!");
+            quit.OnRelapse += b => Console.WriteLine($"  [OnRelapse] {b.Name}: counter reset to {b.DaysSinceHabitRelapse}");
+
+            // 3. Method overloading: the four AddExercise versions
+            Section("2. Method overloading (AddExercise)");
+            gym.AddExercise("Squats", 12);                              // Overload 1
+            gym.AddExercise("Plank");                                   // Overload 2
+            gym.AddExercise(10, "Lunges", "Calf raises");               // Overload 3 (params)
+            gym.AddExercise(new List<(string ExerciseType, int Reps)>   // Overload 4 (batch)
+        {
+            ("Deadlifts", 8),
+            ("Leg press", 15)
+        });
+            Console.WriteLine($"Exercises added: {gym.Exercises.Count}");
+
+            // 4. Overriding + polymorphism: list typed as Goal, each object runs its own override
+            List<Goal> goals = new() { read, quit, gym };
+
+            Section("3. Overriding / polymorphism (DisplayGoal)");
+            foreach (var goal in goals)
+            {
+                goal.DisplayGoal();
+                Console.WriteLine();
+            }
+
+            Section("4. Abstract method (GetProgressSummary)");
+            foreach (var goal in goals)
+            {
+                Console.WriteLine(goal.GetProgressSummary());
+            }
+
+            // 5. Interface ITrackable: ExerciseGoal isn't one, so OfType filters it out
+            Section("5. Interface (ITrackable): recording 7 days of progress");
+            List<ITrackable> trackables = goals.OfType<ITrackable>().ToList();
+            for (int day = 1; day <= 7; day++)
+            {
+                foreach (var item in trackables)
+                {
+                    item.RecordProgress();   // milestone fires at day 7 for the reading goal
+                }
+            }
+            foreach (var item in trackables)
+            {
+                var name = item is Goal owner ? owner.Name : "Unknown";
+                Console.WriteLine($"{name}: CurrentCount = {item.CurrentCount}");
+            }
+
+            // 6. Interface IResettable: Reset() means different things in each class
+            Section("6. Interface (IResettable): resetting goals");
+            foreach (var resettable in goals.OfType<IResettable>())
+            {
+                resettable.Reset();
+            }
+            foreach (var item in trackables)
+            {
+                var name = item is Goal owner ? owner.Name : "Unknown";
+                Console.WriteLine($"{name}: CurrentCount = {item.CurrentCount}");
+            }
+
+            // 7. Completion event with two subscribers
+            Section("7. Completion event (multicast)");
+            read.MarkAsCompleted();
+
+            // 8. Lambdas with LINQ
+            Section("8. LINQ with lambdas");
+
+            var pending = goals.Where(g => !g.IsCompleted).Select(g => g.Name);
+            Console.WriteLine($"Not completed: {string.Join(", ", pending)}");
+
+            bool anyDone = goals.Any(g => g.IsCompleted);
+            Console.WriteLine($"Any goal completed? {anyDone}");
+
+            int totalReps = goals.OfType<ExerciseGoal>()
+                                 .SelectMany(e => e.Exercises)
+                                 .Sum(x => x.Reps);
+            Console.WriteLine($"Total reps across all exercise goals: {totalReps}");
+
+            var ranked = gym.Exercises
+                            .OrderByDescending(x => x.Reps)
+                            .Select(x => $"{x.ExerciseType} ({x.Reps})");
+            Console.WriteLine($"Exercises by reps: {string.Join(", ", ranked)}");
+
+            foreach (var group in goals.GroupBy(g => g.GetType().Name))
+            {
+                Console.WriteLine($"{group.Key}: {group.Count()}");
+            }
+        }
+
+        private static void Section(string title)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"=== {title} ===");
         }
     }
 }
