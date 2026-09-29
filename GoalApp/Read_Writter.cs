@@ -1,21 +1,21 @@
-﻿
-/// this class was made using AI. I did reseach on what was needed, and them specified what functions were required. 
-
-using System;
+﻿using System;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
+/// this class was predominatly made using AI. 
+/// I did reseach on what was needed through W3 Schools and Youtube, 
+/// and then specified what functions were required based on what I learned.
 namespace GoalApp.Data
 {
     /// Handles communication between the C# application and the SQL database for Goal objects.
-    public class ReadWritter
+    public class Read_Writter
     {
         // Connection string used to connect to the SQL database.
         // IMPORTANT: Replace this with your actual connection information.
         private readonly string _connectionString;
 
         /// Creates a new GoalDatabase object.
-        public ReadWritter(string connectionString)
+        public Read_Writter(string connectionString)
         {
             // Make sure a connection string was actually provided.
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -43,17 +43,25 @@ namespace GoalApp.Data
                 INSERT INTO Goals
                 (
                     Name,
-                    User_ID
-                    Streak
+                    User_ID, 
+                    HowOften,
+                    IsCompleted,
+                    Streak,
                     Description,
-                    DueDate
+                    GoalType,
+                    Milestones
                 )
                 OUTPUT INSERTED.GoalId
                 VALUES
                 (
                     @Name,
+                    @User_ID,
+                    @HowOften,
+                    @IsCompleted,
+                    @Streak,
                     @Description,
-                    @DueDate
+                    @GoalType,
+                    @Milestones
                 );";
 
             // Create the database connection.
@@ -69,8 +77,23 @@ namespace GoalApp.Data
             command.Parameters.Add("@Description", SqlDbType.NVarChar, -1)
                 .Value = (object?)goal.Description ?? DBNull.Value;
 
-            command.Parameters.Add("@DueDate", SqlDbType.DateTime2)
-                .Value = goal.DueDate;
+            command.Parameters.Add("@User_ID", SqlDbType.NVarChar, 50)
+                .Value = goal.User_ID;
+
+            command.Parameters.Add("@HowOften", SqlDbType.NVarChar, 50)
+                .Value = goal.HowOften;
+
+            command,.Parameters.Add("@IsCompleted", SqlDbType.Bit)
+                .Value = goal.IsCompleted;
+
+            command.Parameters.Add("@Streak", SqlDbType.Int)
+                .Value = goal.Streak;
+
+            command.Parameters.Add("@GoalType", SqlDbType.NVarChar, 50)
+                .Value = goal.GoalType;
+
+            command.Parameters.Add("@Milestones", SqlDbType.NVarChar, -1)
+                .Value = (object?)goal.Milestones ?? DBNull.Value;
 
             // Open the connection to the database.
             connection.Open();
@@ -125,6 +148,7 @@ namespace GoalApp.Data
                 SET
                     Name = @Name,
                     Description = @Description,
+                    
                     DueDate = @DueDate
                 WHERE GoalId = @GoalId;";
 
@@ -214,51 +238,3 @@ namespace GoalApp.Data
         }
     }
 }
-
-
-public class Read_Writter_Manager
-{
-    public Read_Writter_Manager()
-    {
-    }
-
-    public create_goal()
-    {
-        string connectionString =
-    "Server=localhost;Database=GoalDatabase;Trusted_Connection=True;TrustServerCertificate=True;";
-
-        GoalDatabase database = new GoalDatabase(connectionString);
-
-        Goal goal = new Goal
-        {
-            Name = "Finish C# Project",
-            Description = "Complete the database portion of the application.",
-            DueDate = new DateTime(2026, 10, 15)
-        };
-
-        int goalId = database.AddGoal(goal);
-
-        Console.WriteLine($"Goal saved with ID: {goalId}");
-    }
-
-    public edit_goal()
-    {
-
-    }
-
-    public delete_goal()
-    {
-
-    }
-
-    public create_users_database()
-    {
-
-    }
-
-    public delete_users_database()
-    {
-
-    }
-}
-
