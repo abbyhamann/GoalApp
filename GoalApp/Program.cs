@@ -1,31 +1,39 @@
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace GoalApp
 {
-    public delegate void GoalCompletedEventHandler(Goal goal); // Delegate for goal completion event
-    public delegate void StreakMilestoneHandler(HabitMakeGoal goal, int streak); //Claude AI suggested making a delegate for the HabitMakeGoal and HabitBreakGoal class to handle streak milestones
-    public interface ITrackable // Interface for goals that can track progress
+    public delegate void GoalCompletedEventHandler(Goal goal); // DELEGATE for goal completion event
+    public delegate void StreakMilestoneHandler(HabitMakeGoal goal, int streak); //Claude AI suggested making a delegate for the HabitMakeGoal
+                                                                                 //and HabitBreakGoal class to handle streak milestones
+    public interface ITrackable // INTERFACE for goals that can track progress
                                 // It defines a property for the current count and a method to record progress.
-                                //Both are interfaces because classes can implement multiple interfaces, as opposed to inheriting from a single base class.
+                                //Both are interfaces because classes can implement multiple interfaces,
+                                //as opposed to inheriting from a single base class.
     {
         int CurrentCount { get; }
         void RecordProgress();
     }
 
-    public interface IResettable // Interface for goals that can be reset
+    public interface IResettable // INTERFACE for goals that can be reset
                                  // It defines a method to reset the goal's progress.
     {
         void Reset();
     }
-    public abstract class Goal // Base class for goals. Abstract because it's a template and should not be instantiated directly.
+    public abstract class Goal // Base class for goals. ABSTRACT because it's a template and should not be instantiated directly.
                                // It provides common properties and methods for all goal types.
                                // Claude AI suggested making the existing class abstract.
     {
         public string Name { get; set; }
         public string HowOften { get; set; }
         public string ReminderFrequency { get; set; }
-        public bool IsCompleted { get; set; }
-        public event GoalCompletedEventHandler? OnCompleted; // Event to notify when a goal is completed
+        public bool IsCompleted { get; private set; }
+        public event GoalCompletedEventHandler? OnCompleted; // Delegate event to notify when a goal is completed 
+                                                             //Events are a specific kind of delegate that are used to provide notifications.
+                                                             //They are typically used in scenarios where a class needs to notify other classes
+                                                             //or components when something of interest occurs.
+
 
         public Goal(string name, string howOften, string frequency) //base constructor to initialize goal properties
         {
@@ -48,26 +56,28 @@ namespace GoalApp
             IsCompleted = true;
             OnCompleted?.Invoke(this); // Invoke the OnCompleted event if there are subscribers
         }
-        public abstract string GetProgressSummary();
+        public abstract string GetProgressSummary(); //abstract function to be implemented by subclasses
+                                                     //to provide a summary of the goal's progress
     }
 
-    public sealed class HabitMakeGoal : Goal, ITrackable, IResettable //Inherits from Goal and implements ITrackable and IResettable interfaces 
-                                                                      // This and the other two subclasses are sealed because they are the end of the inheritance chain.
+    public sealed class HabitMakeGoal : Goal, ITrackable, IResettable //Inherits from Goal and IMPLEMENTS ITrackable and IResettable interfaces 
+                                                                      // This and the other two subclasses are SEALED because they are the end of the inheritance chain.
                                                                       //This is a design choice to prevent further subclassing and maintain the integrity of the goal types.
     {
-        public int HabitStreak { get; private set; } //By making it private, we ensure that the streak can only be modified through the IncrementStreak and BreakStreak methods,
+        public int HabitStreak { get; private set; } //By making it private, we ensure that the streak can only be modified
+                                                     //through the IncrementStreak and BreakStreak methods,
                                                      //which can include additional logic (like milestone checks).
         public int CurrentCount => HabitStreak; // Implementing ITrackable interface property
         public void RecordProgress() => IncrementStreak(); // Implementing ITrackable interface method
         public void Reset() => BreakStreak(); // Implementing IResettable interface method
-        public StreakMilestoneHandler? OnMilestone;   // fires when a milestone is hit
-        private readonly int[] milestones = { 7, 30, 100 };
+        public event StreakMilestoneHandler? OnMilestone;   // fires when a milestone is hit
+        private static readonly int[] milestones = { 7, 30, 100 };
         public HabitMakeGoal(string name, string howOften, string frequency) 
             : base(name, howOften, frequency)
         {
             HabitStreak = 0;
         }
-        public override string GetProgressSummary() => $"{Name}: {HabitStreak}-day streak";
+        public override string GetProgressSummary() => $"{Name}: {HabitStreak}-day streak"; //OVERRIDE abstract method to provide a summary of the goal's progress
         public void IncrementStreak() //Method to increment the HabitStreak property
         {
             HabitStreak++;
@@ -80,7 +90,7 @@ namespace GoalApp
         {
             HabitStreak = 0;
         }
-        public override void DisplayGoal()
+        public override void DisplayGoal() //OVERRIDES the DisplayGoal method to include HabitStreak
         {
             base.DisplayGoal();
             Console.WriteLine($"Habit Streak: {HabitStreak}");
@@ -92,7 +102,7 @@ namespace GoalApp
         public int CurrentCount => DaysSinceHabitRelapse; // Implementing ITrackable interface property
         public void RecordProgress() => IncrementDaysSinceRelapse(); // Implementing ITrackable interface method
         public void Reset() => Relapse(); // Implementing IResettable interface method
-        public Action<HabitBreakGoal>? OnRelapse; // Action built-in delegate to handle relapse events
+        public event Action<HabitBreakGoal>? OnRelapse; // Event to handle relapse events
         public HabitBreakGoal(string name, string howOften, string frequency)
             : base(name, howOften, frequency)
         {
@@ -118,7 +128,7 @@ namespace GoalApp
     }
     public sealed class ExerciseGoal : Goal // Inherits from Goal
     {
-        public List<(string ExerciseType, int Reps)> Exercises { get; set; }
+        public List<(string ExerciseType, int Reps)> Exercises { get; } = new(); // List to hold exercises and their reps
 
         public ExerciseGoal(string name, string howOften, string frequency)
             : base(name, howOften, frequency)
@@ -130,6 +140,10 @@ namespace GoalApp
         //used Claude AI to help with formatting and code structure.
         public void AddExercise(string exerciseType, int reps)
         {
+            if (string.IsNullOrWhiteSpace(exerciseType))
+                throw new ArgumentException("Exercise name required.", nameof(exerciseType));
+            if (reps < 0)
+                throw new ArgumentOutOfRangeException(nameof(reps));
             Exercises.Add((exerciseType, reps));
         }
 
@@ -176,13 +190,13 @@ namespace GoalApp
             var gym = new ExerciseGoal("Leg day", "Weekly", "Monday morning");
             Console.WriteLine("Created: HabitMakeGoal, HabitBreakGoal, ExerciseGoal");
 
-            // 2. Delegates: multicast event, custom delegate, Action<T>, lambdas
-            read.OnCompleted += c => Console.WriteLine($"  [OnCompleted #1] {c.Name} is done!");
+            // Delegates: multicast event, custom delegate, Action<T>, lambdas
+            read.OnCompleted += c => Console.WriteLine($"  [OnCompleted #1] {c.Name} is done!"); //LAMBDA expression as event handler
             read.OnCompleted += c => Console.WriteLine($"  [OnCompleted #2] Second subscriber notified about {c.Name}");
             read.OnMilestone += (habit, streak) => Console.WriteLine($"  [OnMilestone] {habit.Name} reached a {streak}-day streak!");
             quit.OnRelapse += b => Console.WriteLine($"  [OnRelapse] {b.Name}: counter reset to {b.DaysSinceHabitRelapse}");
 
-            // 3. Method overloading: the four AddExercise versions
+            // 2. Method overloading: the four AddExercise versions
             Section("2. Method overloading (AddExercise)");
             gym.AddExercise("Squats", 12);                              // Overload 1
             gym.AddExercise("Plank");                                   // Overload 2
@@ -194,7 +208,7 @@ namespace GoalApp
         });
             Console.WriteLine($"Exercises added: {gym.Exercises.Count}");
 
-            // 4. Overriding + polymorphism: list typed as Goal, each object runs its own override
+            // 3. Overriding + polymorphism: list typed as Goal, each object runs its own override
             List<Goal> goals = new() { read, quit, gym };
 
             Section("3. Overriding / polymorphism (DisplayGoal)");
@@ -203,7 +217,7 @@ namespace GoalApp
                 goal.DisplayGoal();
                 Console.WriteLine();
             }
-
+            // 4. Abstract method: each subclass provides its own implementation of GetProgressSummary
             Section("4. Abstract method (GetProgressSummary)");
             foreach (var goal in goals)
             {
