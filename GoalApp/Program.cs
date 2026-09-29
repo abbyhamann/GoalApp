@@ -6,7 +6,7 @@ namespace GoalApp
 {
     public delegate void GoalCompletedEventHandler(Goal goal); // DELEGATE for goal completion event
     public delegate void StreakMilestoneHandler(HabitMakeGoal goal, int streak); //Claude AI suggested making a delegate for the HabitMakeGoal
-                                                                                 //and HabitBreakGoal class to handle streak milestones
+                                                                                 //class to handle streak milestones
     public interface ITrackable // INTERFACE for goals that can track progress
                                 // It defines a property for the current count and a method to record progress.
                                 //Both are interfaces because classes can implement multiple interfaces,
@@ -25,9 +25,9 @@ namespace GoalApp
                                // It provides common properties and methods for all goal types.
                                // Claude AI suggested making the existing class abstract.
     {
+        public string UserID { get; set; } // Property to hold the user ID associated with the goal
         public string Name { get; set; }
         public string HowOften { get; set; }
-        public string ReminderFrequency { get; set; }
         public bool IsCompleted { get; private set; }
         public event GoalCompletedEventHandler? OnCompleted; // Delegate event to notify when a goal is completed 
                                                              //Events are a specific kind of delegate that are used to provide notifications.
@@ -35,11 +35,12 @@ namespace GoalApp
                                                              //or components when something of interest occurs.
 
 
-        public Goal(string name, string howOften, string frequency) //base constructor to initialize goal properties
+        public Goal(string name, string howOften, string userID) //base constructor to initialize goal properties
+            //TAKE OUT REMINDER FREQUENCY LATER
         {
             Name = name;
             HowOften = howOften;
-            ReminderFrequency = frequency;
+            UserID = userID;
             IsCompleted = false;
         }
 
@@ -47,8 +48,8 @@ namespace GoalApp
         {
             Console.WriteLine($"Goal: {Name}");
             Console.WriteLine($"How Often: {HowOften}");
-            Console.WriteLine($"Reminder Frequency: {ReminderFrequency}");
             Console.WriteLine($"Completed: {IsCompleted}");
+            Console.WriteLine($"User ID: {UserID}");
         }
         public void MarkAsCompleted()
         {
@@ -72,8 +73,8 @@ namespace GoalApp
         public void Reset() => BreakStreak(); // Implementing IResettable interface method
         public event StreakMilestoneHandler? OnMilestone;   // fires when a milestone is hit
         private static readonly int[] milestones = { 7, 30, 100 };
-        public HabitMakeGoal(string name, string howOften, string frequency) 
-            : base(name, howOften, frequency)
+        public HabitMakeGoal(string name, string howOften, string userID) 
+            : base(name, howOften, userID)
         {
             HabitStreak = 0;
         }
@@ -103,8 +104,8 @@ namespace GoalApp
         public void RecordProgress() => IncrementDaysSinceRelapse(); // Implementing ITrackable interface method
         public void Reset() => Relapse(); // Implementing IResettable interface method
         public event Action<HabitBreakGoal>? OnRelapse; // Event to handle relapse events
-        public HabitBreakGoal(string name, string howOften, string frequency)
-            : base(name, howOften, frequency)
+        public HabitBreakGoal(string name, string howOften, string userID)
+            : base(name, howOften, userID)
         {
             DaysSinceHabitRelapse = 0;
         }
@@ -130,8 +131,8 @@ namespace GoalApp
     {
         public List<(string ExerciseType, int Reps)> Exercises { get; } = new(); // List to hold exercises and their reps
 
-        public ExerciseGoal(string name, string howOften, string frequency)
-            : base(name, howOften, frequency)
+        public ExerciseGoal(string name, string howOften, string userID)
+            : base(name, howOften, userID)
         {
             Exercises = new List<(string, int)>();
         }
@@ -185,9 +186,9 @@ namespace GoalApp
         {
             // 1. Abstract + sealed: "new Goal(...)" no longer compiles, so create subclasses
             Section("1. Creating goals");
-            var read = new HabitMakeGoal("Read 20 minutes", "Daily", "Evening");
-            var quit = new HabitBreakGoal("Quit smoking", "Daily", "Morning");
-            var gym = new ExerciseGoal("Leg day", "Weekly", "Monday morning");
+            var read = new HabitMakeGoal("Read 20 minutes", "Daily", "user1");
+            var quit = new HabitBreakGoal("Quit smoking", "Daily", "user1");
+            var gym = new ExerciseGoal("Leg day", "Weekly", "user1");
             Console.WriteLine("Created: HabitMakeGoal, HabitBreakGoal, ExerciseGoal");
 
             // Delegates: multicast event, custom delegate, Action<T>, lambdas
