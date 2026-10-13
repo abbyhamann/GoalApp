@@ -1,11 +1,13 @@
 ﻿using System;
-using System.Data;
-using Microsoft.Data.SqlClient;
+using System.Collections.Generic;
+using System.Linq;
 
 /// this class was predominatly made using AI. 
 /// I did reseach on what was needed through W3 Schools and Youtube, 
 /// and then specified what functions were required based on what I learned.
-namespace GoalApp.Data
+
+/*
+namespace GoalApp
 {
     /// Handles communication between the C# application and the SQL database for Goal objects.
     public class Read_Writter
@@ -83,7 +85,7 @@ namespace GoalApp.Data
             command.Parameters.Add("@HowOften", SqlDbType.NVarChar, 50)
                 .Value = goal.HowOften;
 
-            command,.Parameters.Add("@IsCompleted", SqlDbType.Bit)
+            command.Parameters.Add("@IsCompleted", SqlDbType.Bit)
                 .Value = goal.IsCompleted;
 
             command.Parameters.Add("@Streak", SqlDbType.Int)
@@ -238,3 +240,88 @@ namespace GoalApp.Data
         }
     }
 }
+*/
+
+namespace GoalApp.Data
+{
+    // Handles database operations for saved goal records.
+    public class Read_Writter
+    {
+        // Saves a new goal and returns its generated database ID.
+        public int AddGoal(GoalRecord goal)
+        {
+            ArgumentNullException.ThrowIfNull(goal);
+
+            using var db = new GoalContext();
+
+            db.Goals.Add(goal);
+            db.SaveChanges();
+
+            return goal.GoalId;
+        }
+
+        // Returns all saved goals.
+        public List<GoalRecord> GetGoals()
+        {
+            using var db = new GoalContext();
+
+            return db.Goals
+                .OrderBy(g => g.GoalId)
+                .ToList();
+        }
+
+        // Updates an existing goal.
+        public bool EditGoal(GoalRecord updatedGoal)
+        {
+            ArgumentNullException.ThrowIfNull(updatedGoal);
+
+            using var db = new GoalContext();
+
+            var existingGoal = db.Goals
+                .FirstOrDefault(g =>
+                    g.GoalId == updatedGoal.GoalId);
+
+            if (existingGoal == null)
+            {
+                return false;
+            }
+
+            existingGoal.Name = updatedGoal.Name;
+            existingGoal.User_ID = updatedGoal.User_ID;
+            existingGoal.HowOften = updatedGoal.HowOften;
+            existingGoal.IsCompleted = updatedGoal.IsCompleted;
+            existingGoal.Streak = updatedGoal.Streak;
+            existingGoal.Description = updatedGoal.Description;
+            existingGoal.GoalType = updatedGoal.GoalType;
+            existingGoal.Milestones = updatedGoal.Milestones;
+            existingGoal.DueDate = updatedGoal.DueDate;
+            existingGoal.ReminderFrequency =
+                updatedGoal.ReminderFrequency;
+
+            db.SaveChanges();
+
+            return true;
+        }
+
+        // Deletes a goal using its database ID.
+        public bool DeleteGoal(int goalId)
+        {
+            using var db = new GoalContext();
+
+            var goal = db.Goals
+                .FirstOrDefault(g => g.GoalId == goalId);
+
+            if (goal == null)
+            {
+                return false;
+            }
+
+            db.Goals.Remove(goal);
+            db.SaveChanges();
+
+            return true;
+        }
+    }
+}
+
+
