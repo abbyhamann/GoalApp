@@ -1,4 +1,4 @@
-﻿using System;
+﻿/*using System;
 
 
 public class Read_Writter_Manager
@@ -9,7 +9,7 @@ public class Read_Writter_Manager
         Read_Writter WR = new Read_Writter();
     }
 
-    public create_goal(string Name, string User_ID, string HowOften, bool IsCompleted, string Streak,
+    public void create_goal(string Name, string User_ID, string HowOften, bool IsCompleted, string Streak,
             string Description, string GoalType, string Milestones)
     {
         /// Fill generic string that stands in until I create a database to connect to. 
@@ -36,7 +36,7 @@ public class Read_Writter_Manager
     }
 
 
-    public read_goal()
+    public void read_goal()
     {
         using (var db = new GoalContext())
         {
@@ -48,7 +48,7 @@ public class Read_Writter_Manager
         }
     }
 
-    public edit_goal()
+    public void edit_goal()
     {
         using (var db = new GoalContext())
         {
@@ -136,9 +136,127 @@ public class Read_Writter_Manager
         }
     }
 
-    public delete_goal()
+    public void delete_goal()
     {
 
     }
+}*/
+
+
+using System;
+using GoalApp.Data;
+
+public class Read_Writter_Manager
+{
+    private readonly Read_Writter writer = new Read_Writter();
+
+    // Create and save a database record.
+    public void create_goal(
+        string Name,
+        string User_ID,
+        string HowOften,
+        bool IsCompleted,
+        string Streak,
+        string Description,
+        string GoalType,
+        string Milestones)
+    {
+        if (!int.TryParse(Streak, out int streakValue))
+        {
+            throw new ArgumentException(
+                "Streak must be a whole number.", nameof(Streak));
+        }
+
+        var goal = new GoalRecord
+        {
+            Name = Name,
+            User_ID = User_ID,
+            HowOften = HowOften,
+            IsCompleted = IsCompleted,
+            Streak = streakValue,
+            Description = Description,
+            GoalType = GoalType,
+            Milestones = Milestones
+        };
+
+        int goalId = writer.AddGoal(goal);
+
+        Console.WriteLine($"Goal saved with ID: {goalId}");
+    }
+
+    // Read and display all saved goals.
+    public void read_goal()
+    {
+        var goals = writer.GetGoals();
+
+        foreach (var goal in goals)
+        {
+            Console.WriteLine(
+                $"ID: {goal.GoalId}, Name: {goal.Name}, " +
+                $"User: {goal.User_ID}, Type: {goal.GoalType}, " +
+                $"Completed: {goal.IsCompleted}, Streak: {goal.Streak}");
+        }
+    }
+
+    // Edit a goal's name.
+    public void edit_goal()
+    {
+        read_goal();
+
+        Console.WriteLine("Enter the ID of the goal to edit:");
+        if (!int.TryParse(Console.ReadLine(), out int goalId))
+        {
+            Console.WriteLine("Invalid goal ID.");
+            return;
+        }
+
+        var goal = writer.GetGoals()
+            .Find(g => g.GoalId == goalId);
+
+        if (goal == null)
+        {
+            Console.WriteLine("Goal not found.");
+            return;
+        }
+
+        Console.WriteLine("Enter the new name:");
+        string? newName = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            Console.WriteLine("Name cannot be empty.");
+            return;
+        }
+
+        goal.Name = newName;
+
+        if (writer.EditGoal(goal))
+        {
+            Console.WriteLine("Goal updated.");
+        }
+    }
+
+    // Delete a goal by ID.
+    public void delete_goal()
+    {
+        read_goal();
+
+        Console.WriteLine("Enter the ID of the goal to delete:");
+        if (!int.TryParse(Console.ReadLine(), out int goalId))
+        {
+            Console.WriteLine("Invalid goal ID.");
+            return;
+        }
+
+        if (writer.DeleteGoal(goalId))
+        {
+            Console.WriteLine("Goal deleted.");
+        }
+        else
+        {
+            Console.WriteLine("Goal not found.");
+        }
+    }
 }
+
 
