@@ -2,7 +2,7 @@ using GoalApp;
 namespace GoalApp
 {
 
-    }
+    
     public class Program //Claude AI used to generate temporary code structure and formatting for Program class for demonstration purposes
     {
         public static void Main(string[] args)

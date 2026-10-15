@@ -13,6 +13,7 @@ namespace GoalApp
 {
     internal class tempWorkspace
     {
+        /*
         public static void Main(string[] args)
         {
             // Create an object representing the goal to save.
@@ -62,6 +63,6 @@ namespace GoalApp
             {
                 Console.WriteLine("Goal not found.");
             }
-        }
+        }*/
     }
 }
