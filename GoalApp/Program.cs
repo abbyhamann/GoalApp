@@ -1,6 +1,8 @@
 using GoalApp;
 namespace GoalApp
 {
+
+    }
     public class Program //Claude AI used to generate temporary code structure and formatting for Program class for demonstration purposes
     {
         public static void Main(string[] args)
@@ -24,10 +26,10 @@ namespace GoalApp
             gym.AddExercise("Plank");                                   // Overload 2
             gym.AddExercise(10, "Lunges", "Calf raises");               // Overload 3 (params)
             gym.AddExercise(new List<(string ExerciseType, int Reps)>   // Overload 4 (batch)
-            {
-                ("Deadlifts", 8),
-                ("Leg press", 15)
-            });
+        {
+            ("Deadlifts", 8),
+            ("Leg press", 15)
+        });
             Console.WriteLine($"Exercises added: {gym.Exercises.Count}");
 
             // 3. Overriding + polymorphism: list typed as Goal, each object runs its own override
@@ -112,5 +114,3 @@ namespace GoalApp
         }
     }
 }
-
-
