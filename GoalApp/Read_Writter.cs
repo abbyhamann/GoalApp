@@ -321,6 +321,18 @@ namespace GoalApp.Data
 
             return true;
         }
+
+        public GoalRecord? ReadGoal(int goalId)
+        {
+            using var db = new GoalContext();
+
+            // Find the goal with the matching ID.
+            GoalRecord? goal = db.Goals
+                .FirstOrDefault(g => g.GoalId == goalId);
+
+            // Return the goal object, or null if no match was found.
+            return goal;
+        }
     }
 }
 
